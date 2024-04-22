@@ -1,5 +1,7 @@
+import sys
 from ipfs import IpfsClient
 from chainblock import BlockChain
+from user import User
 
 
 def main():
@@ -13,6 +15,20 @@ def main():
     bc.addBlock(res2)
     bc.addBlock(res3)
     bc.show()
+
+
+def entry(argv):
+    if argv < 2:
+        print("login as a guest...")
+        return
+
+    if argv[1] == "login":
+        User.login(argv[1])
+
+
+def homepage():
+    # ming tian zai zuo
+    main()
 
 
 if __name__ == '__main__':
