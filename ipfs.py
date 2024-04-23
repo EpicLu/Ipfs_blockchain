@@ -20,7 +20,7 @@ class IpfsClient:
         return res
 
     def download(self, cid, path='./download'):
-        file = self._client.get(cid, path)
+        self._client.get(cid, path)
 
     def close(self):
         self._client.close()

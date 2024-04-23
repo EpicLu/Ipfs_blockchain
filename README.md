@@ -7,3 +7,6 @@ Simple implementation of storing raw files in IPFS and digital fingerprints in b
 
 ### 2024/4/23
 add user.py
+
+### 2024/4/24
+provide interactive ways
