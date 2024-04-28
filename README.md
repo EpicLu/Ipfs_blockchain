@@ -10,3 +10,6 @@ add user.py
 
 ### 2024/4/24
 provide interactive ways
+
+### 2024/4/29
+achieve download command
