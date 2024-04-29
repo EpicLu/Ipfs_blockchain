@@ -87,6 +87,9 @@ class BlockChain:
 
         return self._blocks[itemHash]
 
+    def getBlocks(self):
+        return self._blocks
+
     def _getPervBlockHash(self):
         res = None
         for key in self._blocks:

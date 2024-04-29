@@ -13,3 +13,6 @@ provide interactive ways
 
 ### 2024/4/29
 achieve download command
+
+### 2024/4/30
+Add plagiarism checking

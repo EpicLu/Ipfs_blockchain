@@ -4,22 +4,28 @@ from ipfs import IpfsClient
 from blockchain import BlockChain
 from user import User
 from datetime import datetime
+from lsh import LSHVerify
 
 
-def main(argv, user, ipfs, bc):
+def main(argv, user, ipfs, bc, lshv):
     if argv[0] == "-login":
         user.login(argv[1])
     elif argv[0] == "-add":
         if not isLogin(user):
             return
+
         if os.path.isdir(argv[1]):
             print("Folder is not supported")
             return
         elif os.path.isfile(argv[1]):
-            timestamp = int(datetime.utcnow().timestamp())
-            res = ipfs.upload(argv[1])
-            bc.addBlock(res, user.curUser, timestamp)
-            user.saveItem(res, timestamp)
+            with open(argv[1], 'r') as f:
+                if lshv.verify(f.read(), os.path.basename(argv[1])):
+                    timestamp = int(datetime.utcnow().timestamp())
+                    res = ipfs.upload(argv[1])
+                    bc.addBlock(res, user.curUser, timestamp)
+                    user.saveItem(res, timestamp)
+                else:
+                    print("Upload failed! Suspected plagiarism in the work.")
         else:
             print("Invalid path!")
             return
@@ -58,12 +64,12 @@ def main(argv, user, ipfs, bc):
 
 
 def homepage(user, ipfs, bc):
-    argv = None
+    lshv = initLSHVerify(bc.getBlocks(), ipfs)
     if len(sys.argv) < 2:
         print("login as a guest...")
     else:
         argv = [sys.argv[1], sys.argv[2]]
-        main(argv, user, ipfs, bc)
+        main(argv, user, ipfs, bc, lshv)
 
     while True:
         bc.show()
@@ -74,9 +80,10 @@ def homepage(user, ipfs, bc):
         args = input()
         argv = args.split()
         if len(argv) < 2:
-            if argv[0] == "exit":
+            if len(argv) > 0 and argv[0] == "exit":
+                close()
                 print("goodbye~")
-                exit(0)
+                break
             else:
                 print(
                     "Wrong arguments! Please use the following command with arguments.\n" +
@@ -86,7 +93,7 @@ def homepage(user, ipfs, bc):
                     "-download [hash] [path]"
                 )
         else:
-            main(argv, user, ipfs, bc)
+            main(argv, user, ipfs, bc, lshv)
 
         print("press enter to continue...")
         input()
@@ -105,6 +112,32 @@ def permitDownload(user, block):
     if isLogin(user) and user.curUser == block.getFileOwner():
         return True
     return False
+
+
+def initLSHVerify(blocks, ipfs):
+    texts = []
+    filenames = []
+    for block in blocks.values():
+        texts.append(ipfs.textContent(block.getIpfsAddr()))
+        filenames.append(block.getFileName())
+
+    lshv = LSHVerify(texts, filenames)
+    return lshv
+
+
+def clearLSHVerify():
+    folderPath = os.path.join(os.getcwd(), "lshData")
+    if os.path.exists(folderPath):
+        for fn in os.listdir(folderPath):
+            fp = os.path.join(folderPath, fn)
+            if os.path.isfile(fp):
+                os.remove(fp)
+
+
+def close(user, ipfs):
+    clearLSHVerify()
+    user.close()
+    ipfs.close()
 
 
 if __name__ == '__main__':
