@@ -5,6 +5,7 @@ from blockchain import BlockChain
 from user import User
 from datetime import datetime
 from lsh import LSHVerify
+from crypto import Crypto
 
 
 def main(argv, user, ipfs, bc, lshv):
@@ -21,9 +22,12 @@ def main(argv, user, ipfs, bc, lshv):
             with open(argv[1], 'r') as f:
                 if lshv.verify(f.read(), os.path.basename(argv[1])):
                     timestamp = int(datetime.utcnow().timestamp())
-                    res = ipfs.upload(argv[1])
-                    bc.addBlock(res, user.curUser, timestamp)
-                    user.saveItem(res, timestamp)
+                    ipfsObj = ipfs.upload(argv[1])
+                    encryptedCid = user.token.encrypt(ipfsObj[0]['Hash'])
+                    res = {'Hash': encryptedCid, 'Name': ipfsObj[0]['Name'], 'Size': ipfsObj[0]['Size']}
+                    if res:
+                        bc.addBlock(res, user.curUser, timestamp)
+                        user.saveItem(res, timestamp)
                 else:
                     print("Upload failed! Suspected plagiarism in the work.")
         else:
@@ -34,9 +38,11 @@ def main(argv, user, ipfs, bc, lshv):
             return
 
         block = bc.getBlock(argv[1])
-        if bc.purchaseItem(argv[1], user.curUser) \
-                and block is not None \
-                and user.transferItem(block.getIpfsAddr(), user.curUser):
+
+        newCid = None
+        if block is not None:
+            newCid = user.transferItem(block.getIpfsAddr(), user.curUser, block.getFileOwner())
+        if newCid is not None and bc.purchaseItem(argv[1], user.curUser, newCid):
             bc.commitPurchase()
             print("Purchase successfully!")
         else:
@@ -46,7 +52,7 @@ def main(argv, user, ipfs, bc, lshv):
         if block is None:
             return
         if permitDownload(user, block):
-            cid = block.getIpfsAddr()
+            cid = user.token.decrypt(block.getIpfsAddr())
             if len(argv) > 2:
                 ipfs.download(cid, block.getFileName(), argv[2])
             else:
@@ -73,7 +79,7 @@ def homepage(user, ipfs, bc):
 
     while True:
         bc.show()
-        print("--------------------------------------------------------")
+        print("-------------------------------------------------------------------------")
         print("-add [filepath]" + "    Using this command to upload a file.")
         print("-buy [hash]" + "    Using this command to buy a item.")
         print("-download [hash] [path]" + "    Using this command to download your own item to local.")
@@ -81,7 +87,7 @@ def homepage(user, ipfs, bc):
         argv = args.split()
         if len(argv) < 2:
             if len(argv) > 0 and argv[0] == "exit":
-                close()
+                close(user, ipfs)
                 print("goodbye~")
                 break
             else:
@@ -117,9 +123,19 @@ def permitDownload(user, block):
 def initLSHVerify(blocks, ipfs):
     texts = []
     filenames = []
+    cryptos = []
+
+    folderPath = os.path.join(os.getcwd(), "token")
+    if os.path.exists(folderPath):
+        for fn in os.listdir(folderPath):
+            cryptos.append(Crypto(fn))
+
     for block in blocks.values():
-        texts.append(ipfs.textContent(block.getIpfsAddr()))
-        filenames.append(block.getFileName())
+        for crypto in cryptos:
+            data = crypto.decrypt(block.getIpfsAddr())
+            if data is not None:
+                texts.append(ipfs.textContent(data))
+                filenames.append(block.getFileName())
 
     lshv = LSHVerify(texts, filenames)
     return lshv
@@ -147,7 +163,7 @@ if __name__ == '__main__':
 
     historyItems = bcUser.getAllItems()
     for item in historyItems:
-        ipfsObj = [{'Hash': item[0], 'Name': item[1], 'Size': str(item[2])}]
+        ipfsObj = {'Hash': item[0], 'Name': item[1], 'Size': str(item[2])}
         blocks.addBlock(ipfsObj, item[4], item[3])
 
     homepage(bcUser, bcIpfs, blocks)

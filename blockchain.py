@@ -9,20 +9,23 @@ class Block:
         self._owner = owner
 
         message = hashlib.sha256()
-        message.update(str(self._data[0]['Hash']).encode('utf-8'))
+        message.update(str(self._data['Hash']).encode('utf-8'))
         self.hash = message.hexdigest()
 
     def setFileOwner(self, buyer):
         self._owner = buyer
 
     def getFileName(self):
-        return self._data[0]['Name']
+        return self._data['Name']
+
+    def setNewIpfsAddr(self, newCId):
+        self._data['Hash'] = newCId
 
     def getIpfsAddr(self):
-        return self._data[0]['Hash']
+        return self._data['Hash']
 
     def getFileSize(self):
-        return self._data[0]['Size']
+        return self._data['Size']
 
     def getTimestamp(self):
         return self._timestamp
@@ -34,8 +37,9 @@ class Block:
 class BlockChain:
     def __init__(self):
         self._blocks = {}
-        self._boughtItemHash = None
+        self._boughtItemHashCookies = None
         self._buyer = None
+        self._buyerNewCid = None
 
     def addBlock(self, data, owner: str, timestamp):
         block = Block(data, owner, self._getPervBlockHash(), timestamp)
@@ -43,13 +47,12 @@ class BlockChain:
 
     def show(self):
         if len(self._blocks) == 0:
-            print("""
-                _______ 
-               /       \\
-              |  O   O  |
-              |  ^    ^ |
-              |_________|
-            """)
+            print(r"__        _______ _     ____ ___  __  __ _____       _______")
+            print(r"\ \      / / ____| |   / ___/ _ \|  \/  | ____|     /       \ ")
+            print(r" \ \ /\ / /|  _| | |  | |  | | | | |\/| |  _|      |  O   O  |")
+            print(r"  \ V  V / | |___| |__| |__| |_| | |  | | |___     |  ^    ^ |")
+            print(r"   \_/\_/  |_____|_____\____\___/|_|  |_|_____|    |_________|")
+
         else:
             print("|hash\t|" + "file\t|" + "size\t|" + "owner\t")
             for key, value in self._blocks.items():
@@ -59,7 +62,7 @@ class BlockChain:
                       '\t|' + value.getFileOwner()
                       )
 
-    def purchaseItem(self, itemHash, buyer):
+    def purchaseItem(self, itemHash, buyer, newCid):
         if itemHash not in self._blocks:
             return False
 
@@ -71,14 +74,16 @@ class BlockChain:
             print("Enter Y/N to confirm/cancel purchase!")
             decision = input()
             if decision == 'y' or decision == 'Y':
-                self._boughtItemHash = itemHash
+                self._boughtItemHashCookies = itemHash
                 self._buyer = buyer
+                self._buyerNewCid = newCid
                 return True
 
             return False
 
     def commitPurchase(self):
-        self._blocks[self._boughtItemHash].setFileOwner(self._buyer)
+        self._blocks[self._boughtItemHashCookies].setFileOwner(self._buyer)
+        self._blocks[self._boughtItemHashCookies].setNewIpfsAddr(self._buyerNewCid)
 
     def getBlock(self, itemHash):
         if itemHash not in self._blocks:

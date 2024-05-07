@@ -1,4 +1,5 @@
 import mysql.connector
+from crypto import Crypto
 
 
 class User:
@@ -13,6 +14,7 @@ class User:
 
         self._cnx = mysql.connector.connect(**config)
         self.curUser = None
+        self.token = None
 
         cursor = self._cnx.cursor()
         queryTableUsers = "SHOW TABLES LIKE 'users'"
@@ -27,7 +29,7 @@ class User:
         if not cursor.fetchone():
             createTableItems = (
                 "CREATE TABLE items ( \
-                ipfsAddr VARCHAR(255) PRIMARY KEY, \
+                ipfsAddr VARCHAR(255) NOT NULL, \
                 item VARCHAR(255) NOT NULL, \
                 size BIGINT NOT NULL, \
                 timestamp BIGINT NOT NULL, \
@@ -60,6 +62,7 @@ class User:
             self.curUser = username
         else:
             self.registerUser(username)
+        self.token = Crypto(username)
         print(f"welcome {self.curUser}")
 
     def registerUser(self, username):
@@ -83,9 +86,9 @@ class User:
         cursor = self._cnx.cursor()
         insertableItems = \
             f"INSERT INTO items SET \
-            ipfsAddr = '{ipfsObj[0]['Hash']}', \
-            item = '{ipfsObj[0]['Name']}', \
-            size = '{ipfsObj[0]['Size']}', \
+            ipfsAddr = '{ipfsObj['Hash']}', \
+            item = '{ipfsObj['Name']}', \
+            size = '{ipfsObj['Size']}', \
             timestamp = '{timestamp}', \
             owner = '{self.curUser}'"
 
@@ -108,13 +111,16 @@ class User:
         cursor.close()
         return res
 
-    def transferItem(self, cid, buyer):
+    def transferItem(self, cid, buyer, owner):
         cursor = self._cnx.cursor()
 
         try:
-            updateOwner = f"UPDATE items SET owner = '{buyer}' WHERE ipfsAddr = '{cid}'"
-            cursor.execute(updateOwner)
-            self._cnx.commit()
+            deCid = Crypto(owner).decrypt(cid)
+            if deCid:
+                newCid = self.token.encrypt(deCid)
+                updateOwner = f"UPDATE items SET owner = '{buyer}', ipfsAddr = '{newCid}' WHERE ipfsAddr = '{cid}'"
+                cursor.execute(updateOwner)
+                self._cnx.commit()
         except mysql.connector.Error:
             self._cnx.rollback()
             return False

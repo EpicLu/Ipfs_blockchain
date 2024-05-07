@@ -16,3 +16,6 @@ achieve download command
 
 ### 2024/4/30
 Add plagiarism checking
+
+### 2024/5/5
+Encrypt IPFS addresses using RSA
