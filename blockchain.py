@@ -45,7 +45,18 @@ class BlockChain:
         block = Block(data, owner, self._getPervBlockHash(), timestamp)
         self._blocks[block.hash] = block
 
-    def show(self):
+    def show(self, queryList=None):
+        if queryList:
+            print("query results:")
+            print("|hash\t|" + "file\t|" + "size\t|" + "owner\t")
+            for query in queryList:
+                print('|' + query.hash +
+                      '\t|' + query.getFileName() +
+                      '\t|' + query.getFileSize() + ' bytes' +
+                      '\t|' + query.getFileOwner()
+                      )
+            return
+
         if len(self._blocks) == 0:
             print(r"__        _______ _     ____ ___  __  __ _____       _______")
             print(r"\ \      / / ____| |   / ___/ _ \|  \/  | ____|     /       \ ")
@@ -61,6 +72,20 @@ class BlockChain:
                       '\t|' + value.getFileSize() + ' bytes' +
                       '\t|' + value.getFileOwner()
                       )
+
+    def query(self, queryType, queryValue):
+        res = []
+        for key, value in self._blocks.items():
+            if queryType == '-a' and value.getFileOwner() == queryValue:
+                res.append(value)
+            elif queryType == '-h' and key == queryValue:
+                res.append(value)
+            elif queryType == '-f' and value.getFileName()  == queryValue:
+                res.append(value)
+        if len(res) > 0:
+            self.show(res)
+        else:
+            print("")
 
     def purchaseItem(self, itemHash, buyer, newCid):
         if itemHash not in self._blocks:

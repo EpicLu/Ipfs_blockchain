@@ -10,7 +10,9 @@ from crypto import Crypto
 
 def main(argv, user, ipfs, bc, lshv):
     if argv[0] == "-login":
-        user.login(argv[1])
+        print("Password:")
+        pwd = input()
+        user.login(argv[1], pwd)
     elif argv[0] == "-add":
         if not isLogin(user):
             return
@@ -42,7 +44,7 @@ def main(argv, user, ipfs, bc, lshv):
         newCid = None
         if block is not None:
             newCid = user.transferItem(block.getIpfsAddr(), user.curUser, block.getFileOwner())
-        if newCid is not None and bc.purchaseItem(argv[1], user.curUser, newCid):
+        if newCid and bc.purchaseItem(argv[1], user.curUser, newCid):
             bc.commitPurchase()
             print("Purchase successfully!")
         else:
@@ -57,14 +59,19 @@ def main(argv, user, ipfs, bc, lshv):
                 ipfs.download(cid, block.getFileName(), argv[2])
             else:
                 ipfs.download(cid, block.getFileName())
+            print("Download successfully!")
         else:
             print("Download failed! Not the owner.")
+    elif argv[0] == "-query" and len(argv) == 3 \
+            and argv[1] == '-a' or argv[1] == '-h' or argv[1] == '-f':
+        bc.query(argv[1], argv[2])
     else:
         print(
             "Wrong command! Please use the following command.\n" +
             "-login [username]\n" +
             "-add [filepath]\n" +
             "-buy [hash]\n" +
+            "-query -a/-h/-f [author]/[hash]/[filename]\n" +
             "-download [hash] [path]"
         )
 
@@ -82,6 +89,7 @@ def homepage(user, ipfs, bc):
         print("-------------------------------------------------------------------------")
         print("-add [filepath]" + "    Using this command to upload a file.")
         print("-buy [hash]" + "    Using this command to buy a item.")
+        print("-query -a/-h/-f [author]/[hash]/[filename]" + "    Using this command to query items.")
         print("-download [hash] [path]" + "    Using this command to download your own item to local.")
         args = input()
         argv = args.split()

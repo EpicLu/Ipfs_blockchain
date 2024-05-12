@@ -19,3 +19,6 @@ Add plagiarism checking
 
 ### 2024/5/5
 Encrypt IPFS addresses using RSA
+
+### 2024/5/12
+add query function

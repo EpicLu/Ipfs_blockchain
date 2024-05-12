@@ -20,7 +20,7 @@ class User:
         queryTableUsers = "SHOW TABLES LIKE 'users'"
         cursor.execute(queryTableUsers)
         if not cursor.fetchone():
-            createTableUsers = "CREATE TABLE users (username VARCHAR(50) PRIMARY KEY)"
+            createTableUsers = "CREATE TABLE users (username VARCHAR(50) PRIMARY KEY, pwd VARCHAR(50) NOT NULL)"
             cursor.execute(createTableUsers)
             cursor.fetchall()
 
@@ -52,22 +52,27 @@ class User:
             exit(0)
         cursor.close()
 
-    def login(self, username):
+    def login(self, username, pwd):
         cursor = self._cnx.cursor()
-        queryTableUsers = f"SELECT * FROM users WHERE username = '{username}'"
+        queryTableUsers = f"SELECT pwd FROM users WHERE username = '{username}'"
         cursor.execute(queryTableUsers)
         res = cursor.fetchall()
         cursor.close()
         if res:
-            self.curUser = username
+            for data in res:
+                if data[0] == pwd:
+                    self.curUser = username
+                else:
+                    print("Password error!")
+                    return
         else:
-            self.registerUser(username)
+            self.registerUser(username, pwd)
         self.token = Crypto(username)
         print(f"welcome {self.curUser}")
 
-    def registerUser(self, username):
+    def registerUser(self, username, pwd):
         cursor = self._cnx.cursor()
-        insertNewUser = f"INSERT INTO users (username) VALUES ('{username}')"
+        insertNewUser = f"INSERT INTO users (username, pwd) VALUES ('{username}', '{pwd}')"
 
         try:
             cursor.execute(insertNewUser)
@@ -121,11 +126,11 @@ class User:
                 updateOwner = f"UPDATE items SET owner = '{buyer}', ipfsAddr = '{newCid}' WHERE ipfsAddr = '{cid}'"
                 cursor.execute(updateOwner)
                 self._cnx.commit()
+                cursor.close()
+                return newCid
         except mysql.connector.Error:
             self._cnx.rollback()
-            return False
-        cursor.close()
-        return True
+            return None
 
     def close(self):
         self._cnx.close()
