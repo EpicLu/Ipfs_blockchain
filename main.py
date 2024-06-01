@@ -43,9 +43,11 @@ def main(argv, user, ipfs, bc, lshv):
 
         newCid = None
         if block is not None:
-            newCid = user.transferItem(block.getIpfsAddr(), user.curUser, block.getFileOwner())
+            user.recordTrade(block.getIpfsAddr(), block.hash, block.getFileName(), user.curUser, block.getFileOwner())
+            newCid = user.transferItem(block.getIpfsAddr(), block.getFileOwner())
         if newCid and bc.purchaseItem(argv[1], user.curUser, newCid):
             bc.commitPurchase()
+            user.tradeCommit(newCid)
             print("Purchase successfully!")
         else:
             print("Error happening! Purchase failed!")

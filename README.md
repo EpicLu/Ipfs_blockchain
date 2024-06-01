@@ -22,3 +22,6 @@ Encrypt IPFS addresses using RSA
 
 ### 2024/5/12
 add query function
+
+### 2024/6/2
+record bill
